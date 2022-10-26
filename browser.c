@@ -70,6 +70,10 @@ void init_tabs () {
 // return 0 if favorite is ok, -1 otherwise
 // both max limit, already a favorite (Hint: see util.h) return -1
 int fav_ok (char *uri) {
+   if(on_favorites(uri))
+    {
+    }
+     
   return 0;
 }
 
@@ -83,6 +87,8 @@ void update_favorites_file (char *uri) {
 
 // Set up favorites array
 void init_favorites (char *fname) {
+//char favorites[MAX_FAV][MAX_URL];    // Maximum char length of a url allowed
+//int num_fav = 0;                     // # favorites
 }
 
 // Make fd non-blocking just as in class!
@@ -107,7 +113,23 @@ int non_block_pipe (int fd) {
 void handle_uri (char *uri, int tab_index) {
   printf("3\n");
   //hard_coded
-  write(comm[1].inbound[1], uri, strlen(uri));
+  if(on_blacklist(uri))
+   {
+     
+    }
+
+  if(bad_format(uri))
+   {
+
+
+   }
+  req_t* command;
+  command =malloc(sizeof(req_t));
+  command->type=NEW_URI_ENTERED;
+  command->tab_index=tab_index;
+  memcpy(command->uri,uri,512);
+  printf("%s \n",command->uri); 
+  write(comm[1].inbound[1],command, sizeof(req_t));
 }
 
 
@@ -174,17 +196,28 @@ void new_tab_created_cb (GtkButton *button, gpointer data) {
   // (inbound then outbound) -- this last argument will be 4 integers "a b c d"
   // Hint: stringify args
   pid_t child = fork();
+  int status;
   if (child < 0) {
     perror("fork error\n");
   }
   else if (child == 0) {
     char pipe_str[20], tab_str[20];
+  //  char* dummy_str;
+  //  dummy_str=malloc(strlen("1 2 3 4")+1);
     sprintf (tab_str, "%d", free_tab_id);
-    sprintf (pipe_str, "%d %d %d %d", comm[free_tab_id].inbound[1], comm[free_tab_id].inbound[0], comm[free_tab_id].outbound[1], comm[free_tab_id].outbound[0]);
+   // sprintf (pipe_str, "%d %d %d %d", comm[free_tab_id].inbound[1], comm[free_tab_id].inbound[0], comm[free_tab_id].outbound[1], comm[free_tab_id].outbound[0]);
+    sprintf (pipe_str, "%d %d %d %d", comm[free_tab_id].inbound[0], comm[free_tab_id].inbound[1], comm[free_tab_id].outbound[0], comm[free_tab_id].outbound[1]);
+   // sprintf (pipe_str, "%d %d %d %d", comm[free_tab_id].inbound[1], comm[free_tab_id].inbound[0], comm[free_tab_id].outbound[1], comm[free_tab_id].outbound[0]);
+  //  sprintf (pipe_str, "%d %d %d %d", comm[free_tab_id].inbound[1], comm[free_tab_id].inbound[0], comm[free_tab_id].outbound[1], comm[free_tab_id].outbound[0]);
+   printf("%s \n",pipe_str);
+   printf("%s \n",tab_str);
     execl("./render", "render", tab_str, pipe_str, NULL);
+  //  execl("./render", "render", tab_str, dummy_str, NULL);
   }
   else if (child > 0) {
     // Controller parent just does some TABS bookkeeping
+     waitpid(child,&status,WNOHANG);
+    // exit(EXIT_SUCCESS);
   }
   
 }
@@ -209,9 +242,9 @@ void menu_item_selected_cb (GtkWidget *menu_item, gpointer data) {
   sprintf(uri, "https://%s", basic_uri);
 
   // Get the tab (hint: wrapper.h)
-
+  get_entered_uri();
   // Hint: now you are ready to handle_the_uri
-
+   handle_uri();
   return;
 }
 
@@ -243,7 +276,7 @@ int run_control() {
     // Loop across all pipes from VALID tabs -- starting from 0
     for (i=0; i<MAX_TABS; i++) {
       if (TABS[i].free) continue;
-      //nRead = read(comm[i].outbound[0], &req, sizeof(req_t));
+        nRead = read(comm[i].outbound[0], &req, sizeof(req_t));
 
       // Check that nRead returned something before handling cases
 
@@ -268,13 +301,49 @@ int main(int argc, char **argv)
   }
 
   init_tabs ();
+  //Open blacklist file and pass name to the function
+  init_blacklist();
   // init blacklist (see util.h), and favorites (write this, see above)
-
-
+  pid_t childpid;
+  childpid=fork();
+ if(childpid == -1)
+ {
+  perror("fork() failed");
+ exit(EXIT_FAILURE);
+}
+else if(childpid>0)
+ {
+  if(wait(NULL)>0);
+   else
+     {
+       perror("Wait failed");
+       exit(EXIT_FAILURE);
+ }
+}
+else{
   run_control();
   // Fork controller
   // Child creates a pipe for itself comm[0]
   // then calls run_control ()
   // Parent waits ...
+   if(kill(0,SIGKILL==-1))
+    {
+      perror("Kill failed"); 
+     exit(EXIT_FAILURE);      
+     }
+}
 
+if(wait(NULL) <0)
+{
+perror("Wait failed");
+exit(EXIT_FAILURE);
+}
+
+if(kill(0,SIGKILL) == -1)
+{
+ perror("Kill failed");
+ exit(EXIT_FAILURE);
+
+}
+exit(EXIT_SUCCESS);
 }
