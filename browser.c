@@ -70,11 +70,13 @@ void init_tabs () {
 // return 0 if favorite is ok, -1 otherwise
 // both max limit, already a favorite (Hint: see util.h) return -1
 int fav_ok (char *uri) {
-   if(on_favorites(uri))
+   if(on_favorites(uri)||(num_fav==MAX_FAV ))
     {
+       return -1;
     }
-     
+else{
   return 0;
+}
 }
 
 
@@ -82,15 +84,46 @@ int fav_ok (char *uri) {
 void update_favorites_file (char *uri) {
   // Add uri to favorites file
 
+    char buffer[MAX_URL];
+    FILE* favorite_file;
+    favorite_file = fopen(".favorites","a");
+    if(favorite_file == NULL)
+     {
+       perror("Error opening file");
+     }
+    else{
+        while(fgets(buffer,sizeof(buffer),favorite_file)){
+        fprintf(favorite_file,"%s",buffer);
+   }
+   
   // Update favorites array with the new favorite
+  num_fav++;
+  strncpy(favorites[num_fav],buffer,MAX_URL-1);  
+}
+
 }
 
 // Set up favorites array
 void init_favorites (char *fname) {
 //char favorites[MAX_FAV][MAX_URL];    // Maximum char length of a url allowed
 //int num_fav = 0;                     // # favorites
-}
+    char buffer[MAX_URL];
+    FILE* favorite_file;
+    
+    favorite_file = fopen(".favorites","r");
+    if(favorite_file == NULL)
+     {
+       perror("Error opening file");
+     }
+    else{
+          while(fgets(buffer,sizeof(buffer),favorite_file)!=NULL){
+                 strncpy(favorites[num_fav],buffer,MAX_URL-1);
+                 num_fav++;
 
+             }
+        }
+   
+}
 // Make fd non-blocking just as in class!
 // Return 0 if ok, -1 otherwise
 // Really a util but I want you to do it :-)
@@ -113,23 +146,39 @@ int non_block_pipe (int fd) {
 void handle_uri (char *uri, int tab_index) {
   printf("3\n");
   //hard_coded
+
+  req_t* command;
+ char* bad_format_alert_string;	
+ char* blacklist_alert_string;	
+  size_t bad_format_alert_string_size=strlen("BAD_FORMAT")+1;
+  size_t blacklist_alert_string_size=strlen("BLACKLIST")+1;
+  bad_format_alert_string =malloc(bad_format_alert_string_size);
+  blacklist_alert_string=malloc(blacklist_alert_string_size);
+//  bad_tab_alert_string=malloc(bad_tab_alert_string_size);
+  strncpy(bad_format_alert_string,"BAD_FORMAT",bad_format_alert_string_size);
+  strncpy(blacklist_alert_string,"BLACKLIST",blacklist_alert_string_size);
+  
   if(on_blacklist(uri))
    {
-     
+     alert(blacklist_alert_string);
     }
 
-  if(bad_format(uri))
+ else if(bad_format(uri))
    {
-
+    alert(bad_format_alert_string);
 
    }
-  req_t* command;
+ else
+{
+//What triggers the bad tab_index? Is it that the tab is free?
+  TABS[tab_index].free=0; 
   command =malloc(sizeof(req_t));
   command->type=NEW_URI_ENTERED;
   command->tab_index=tab_index;
   memcpy(command->uri,uri,512);
   printf("%s \n",command->uri); 
-  write(comm[1].inbound[1],command, sizeof(req_t));
+  write(comm[tab_index].inbound[1],command, sizeof(req_t));
+}
 }
 
 
@@ -187,9 +236,6 @@ void new_tab_created_cb (GtkButton *button, gpointer data) {
   non_block_pipe (comm[free_tab_id].inbound[0]);
   non_block_pipe (comm[free_tab_id].outbound[0]);
 
-  //char buf[100];
-  //read(comm[1].inbound[0], buf, 4);
-  //printf("%s\n", buf);
   
   // fork and create new render tab
   // Note: render has different arguments now: tab_index, both pairs of pipe fd's
@@ -202,20 +248,16 @@ void new_tab_created_cb (GtkButton *button, gpointer data) {
   }
   else if (child == 0) {
     char pipe_str[20], tab_str[20];
-  //  char* dummy_str;
-  //  dummy_str=malloc(strlen("1 2 3 4")+1);
     sprintf (tab_str, "%d", free_tab_id);
-   // sprintf (pipe_str, "%d %d %d %d", comm[free_tab_id].inbound[1], comm[free_tab_id].inbound[0], comm[free_tab_id].outbound[1], comm[free_tab_id].outbound[0]);
     sprintf (pipe_str, "%d %d %d %d", comm[free_tab_id].inbound[0], comm[free_tab_id].inbound[1], comm[free_tab_id].outbound[0], comm[free_tab_id].outbound[1]);
-   // sprintf (pipe_str, "%d %d %d %d", comm[free_tab_id].inbound[1], comm[free_tab_id].inbound[0], comm[free_tab_id].outbound[1], comm[free_tab_id].outbound[0]);
-  //  sprintf (pipe_str, "%d %d %d %d", comm[free_tab_id].inbound[1], comm[free_tab_id].inbound[0], comm[free_tab_id].outbound[1], comm[free_tab_id].outbound[0]);
    printf("%s \n",pipe_str);
    printf("%s \n",tab_str);
-    execl("./render", "render", tab_str, pipe_str, NULL);
-  //  execl("./render", "render", tab_str, dummy_str, NULL);
+    execl("./render", "render", tab_str, pipe_str,(char*) NULL);
   }
   else if (child > 0) {
     // Controller parent just does some TABS bookkeeping
+    //What kind of bookkeeping?
+     TABS[free_tab_id].free = 0;
      waitpid(child,&status,WNOHANG);
     // exit(EXIT_SUCCESS);
   }
@@ -232,7 +274,7 @@ void menu_item_selected_cb (GtkWidget *menu_item, gpointer data) {
   if (data == NULL) {
     return;
   }
-  
+  int tab_arg; 
   // Note: For simplicity, currently we assume that the label of the menu_item is a valid url
   // get basic uri
   char *basic_uri = (char *)gtk_menu_item_get_label(GTK_MENU_ITEM(menu_item));
@@ -242,9 +284,9 @@ void menu_item_selected_cb (GtkWidget *menu_item, gpointer data) {
   sprintf(uri, "https://%s", basic_uri);
 
   // Get the tab (hint: wrapper.h)
-  get_entered_uri();
+ tab_arg=query_tab_id_for_request(menu_item,data);
   // Hint: now you are ready to handle_the_uri
-   handle_uri();
+   handle_uri(uri,tab_arg);
   return;
 }
 
@@ -255,14 +297,24 @@ int run_control() {
   browser_window * b_window = NULL;
   int i, nRead;
   req_t req;
-
+  req_t* command;
+  char dummy_string[]="dummy";
+  char* dummy_pointer = dummy_string;
   //Create controller window
   create_browser(CONTROLLER_TAB, 0, G_CALLBACK(new_tab_created_cb),
 		 G_CALLBACK(uri_entered_cb), &b_window, comm[0]);
 
   // Create favorites menu
   create_browser_menu(&b_window, &favorites, num_fav);
-  
+   //Place holder
+ 
+char* bad_tab_alert_string;  
+  size_t bad_tab_alert_string_size=strlen("BAD_TAB")+1;
+  strncpy(bad_tab_alert_string,"BAD_TAB",bad_tab_alert_string_size);
+char* fav_max_alert_string;  
+  size_t fav_max_alert_string_size=strlen("FAV_MAX")+1;
+  strncpy(fav_max_alert_string,"FAV_MAX",fav_max_alert_string_size);
+   //alert(bad_tab_alert_string);
   while (1) {
     process_single_gtk_event();
 
@@ -274,17 +326,68 @@ int run_control() {
     //    TAB_IS_DEAD: tab has exited, what should you do?
 ;
     // Loop across all pipes from VALID tabs -- starting from 0
+    //Should display a bad tab message somewhere
     for (i=0; i<MAX_TABS; i++) {
       if (TABS[i].free) continue;
         nRead = read(comm[i].outbound[0], &req, sizeof(req_t));
 
       // Check that nRead returned something before handling cases
-
+          if(nRead <=0)
+           {
+             perror("Pipe read failed");
+           }     
       // Case 1: PLEASE_DIE
-
+       //Send a PLEASE_DIE command to each open tab, PLEASE_DIE causes terminations
       // Case 2: TAB_IS_DEAD
-	    
+	   //Set that number tab to be free 
       // Case 3: IS_FAV
+        //Check if url is already on favorites list. If not add it to the tab.
+       //Add the url to favorites tab
+     
+     switch(nRead)
+      {
+        case PLEASE_DIE:
+                       if(i==0)
+                         {
+                            int open_tabs = get_num_tabs();
+                            int current_tab;
+                            while(open_tabs)
+                             {
+                           current_tab=get_free_tab();
+                           command =malloc(sizeof(req_t));
+                           command->type=PLEASE_DIE;
+                           command->tab_index=current_tab;
+                           memcpy(command->uri,dummy_pointer,strlen(dummy_string));
+                           write(comm[current_tab].inbound[1],command, sizeof(req_t));
+                           open_tabs--;
+                             } 
+                         }
+                       else
+                          {
+                            
+                           command =malloc(sizeof(req_t));
+                           command->type=TAB_IS_DEAD;
+                           command->tab_index=i;
+                           memcpy(command->uri,dummy_pointer,strlen(dummy_string));
+                           write(comm[i].outbound[1],command, sizeof(req_t));
+                          }
+                           
+                      break;
+        case TAB_IS_DEAD: 
+                   TABS[i].free=1;
+                   break;
+        case IS_FAV:
+               if(fav_ok(req.uri))
+                 {
+                    update_favorites_file(req.uri);
+                 }
+                else
+                { 
+                  alert(fav_max_alert_string);
+                 }
+                break;
+        default: printf("Notihing to do\n"); break;
+      }
     }
     usleep(1000);
   }
@@ -300,9 +403,19 @@ int main(int argc, char **argv)
     exit (0);
   }
 
-  init_tabs ();
+  char* blacklist_file;
+  char* favorites_file;
+  size_t blacklist_file_name_size=strlen(".blacklist")+1;
+  size_t favorites_file_name_size=strlen(".favorites")+1;
+  blacklist_file=malloc(blacklist_file_name_size);
+  favorites_file=malloc(favorites_file_name_size);
+  strncpy(blacklist_file,".blacklist",blacklist_file_name_size);
+  strncpy(favorites_file,".favorites",favorites_file_name_size);
+  
   //Open blacklist file and pass name to the function
-  init_blacklist();
+  init_tabs();
+  init_blacklist(blacklist_file);
+  init_favorites(favorites_file);
   // init blacklist (see util.h), and favorites (write this, see above)
   pid_t childpid;
   childpid=fork();
@@ -321,23 +434,27 @@ else if(childpid>0)
  }
 }
 else{
+  if (pipe(comm[0].inbound) == -1 || pipe(comm[0].outbound) == -1) {
+    perror("pipe error\n");
+    exit(1);
+  }
+
+  // Make the read ends non-blocking 
+  non_block_pipe (comm[0].inbound[0]);
+  non_block_pipe (comm[0].outbound[0]);
   run_control();
+  
+  if(wait(NULL) <0)
+  {
+   perror("Wait failed");
+   exit(EXIT_FAILURE);
+   }
   // Fork controller
   // Child creates a pipe for itself comm[0]
   // then calls run_control ()
   // Parent waits ...
-   if(kill(0,SIGKILL==-1))
-    {
-      perror("Kill failed"); 
-     exit(EXIT_FAILURE);      
-     }
 }
 
-if(wait(NULL) <0)
-{
-perror("Wait failed");
-exit(EXIT_FAILURE);
-}
 
 if(kill(0,SIGKILL) == -1)
 {
@@ -345,5 +462,6 @@ if(kill(0,SIGKILL) == -1)
  exit(EXIT_FAILURE);
 
 }
-exit(EXIT_SUCCESS);
+  return 0;
 }
+
