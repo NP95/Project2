@@ -34,8 +34,9 @@ tab_list TABS[MAX_TABS];
 
 // return total number of tabs
 int get_num_tabs () {
+  printf("get_num_tabs \n");
   int i, count = 0;
-
+  
   for (i=1; i<MAX_TABS; i++) {
     if (TABS[i].free == 0)
       count++;
@@ -45,6 +46,7 @@ int get_num_tabs () {
 
 // get next free tab index
 int get_free_tab () {
+  printf("get_free_tab \n");
   int i;
 
   for (i=1; i<MAX_TABS; i++) {
@@ -56,6 +58,7 @@ int get_free_tab () {
 
 // init TABS data structure
 void init_tabs () {
+  printf("init_tabs \n");
   int i;
 
   for (i=1; i<MAX_TABS; i++)
@@ -70,6 +73,7 @@ void init_tabs () {
 // return 0 if favorite is ok, -1 otherwise
 // both max limit, already a favorite (Hint: see util.h) return -1
 int fav_ok (char *uri) {
+  printf("fav_ok \n");
    if(on_favorites(uri)||(num_fav==MAX_FAV ))
     {
        return -1;
@@ -84,6 +88,7 @@ else{
 void update_favorites_file (char *uri) {
   // Add uri to favorites file
 
+  printf("update_favorites_file \n");
     char buffer[MAX_URL];
     FILE* favorite_file;
     favorite_file = fopen(".favorites","a");
@@ -107,6 +112,7 @@ void update_favorites_file (char *uri) {
 void init_favorites (char *fname) {
 //char favorites[MAX_FAV][MAX_URL];    // Maximum char length of a url allowed
 //int num_fav = 0;                     // # favorites
+  printf("init_favorites \n");
     char buffer[MAX_URL];
     FILE* favorite_file;
     
@@ -128,6 +134,7 @@ void init_favorites (char *fname) {
 // Return 0 if ok, -1 otherwise
 // Really a util but I want you to do it :-)
 int non_block_pipe (int fd) {
+  printf("non_block_pipe \n");
   int nFlags;
   
   if ((nFlags = fcntl(fd, F_GETFL, 0)) < 0)
@@ -258,7 +265,8 @@ void new_tab_created_cb (GtkButton *button, gpointer data) {
     // Controller parent just does some TABS bookkeeping
     //What kind of bookkeeping?
      TABS[free_tab_id].free = 0;
-     waitpid(child,&status,WNOHANG);
+     wait(NULL);
+    // waitpid(child,&status,WNOHANG);
     // exit(EXIT_SUCCESS);
   }
   
@@ -271,6 +279,7 @@ void new_tab_created_cb (GtkButton *button, gpointer data) {
 // Short
 void menu_item_selected_cb (GtkWidget *menu_item, gpointer data) {
 
+  printf("menu_item_selected_cb \n");
   if (data == NULL) {
     return;
   }
@@ -294,6 +303,7 @@ void menu_item_selected_cb (GtkWidget *menu_item, gpointer data) {
 // BIG CHANGE: the controller now runs an loop so it can check all pipes
 // Long function
 int run_control() {
+  printf("Did you get in here");
   browser_window * b_window = NULL;
   int i, nRead;
   req_t req;
@@ -314,6 +324,7 @@ char* bad_tab_alert_string;
 char* fav_max_alert_string;  
   size_t fav_max_alert_string_size=strlen("FAV_MAX")+1;
   strncpy(fav_max_alert_string,"FAV_MAX",fav_max_alert_string_size);
+  printf("Or here \n");
    //alert(bad_tab_alert_string);
   while (1) {
     process_single_gtk_event();
@@ -324,7 +335,7 @@ char* fav_max_alert_string;
     // From any tab:
     //    IS_FAV: add uri to favorite menu (Hint: see wrapper.h), and update .favorites
     //    TAB_IS_DEAD: tab has exited, what should you do?
-;
+
     // Loop across all pipes from VALID tabs -- starting from 0
     //Should display a bad tab message somewhere
     for (i=0; i<MAX_TABS; i++) {
@@ -332,9 +343,9 @@ char* fav_max_alert_string;
         nRead = read(comm[i].outbound[0], &req, sizeof(req_t));
 
       // Check that nRead returned something before handling cases
-          if(nRead <=0)
+          if(nRead==-1)
            {
-             perror("Pipe read failed");
+             continue;
            }     
       // Case 1: PLEASE_DIE
        //Send a PLEASE_DIE command to each open tab, PLEASE_DIE causes terminations
@@ -344,11 +355,11 @@ char* fav_max_alert_string;
         //Check if url is already on favorites list. If not add it to the tab.
        //Add the url to favorites tab
      
-     switch(nRead)
+     switch(req.type)
       {
         case PLEASE_DIE:
-                       if(i==0)
-                         {
+                           if(i==0)
+                            {
                             int open_tabs = get_num_tabs();
                             int current_tab;
                             while(open_tabs)
@@ -360,21 +371,13 @@ char* fav_max_alert_string;
                            memcpy(command->uri,dummy_pointer,strlen(dummy_string));
                            write(comm[current_tab].inbound[1],command, sizeof(req_t));
                            open_tabs--;
-                             } 
-                         }
-                       else
-                          {
-                            
-                           command =malloc(sizeof(req_t));
-                           command->type=TAB_IS_DEAD;
-                           command->tab_index=i;
-                           memcpy(command->uri,dummy_pointer,strlen(dummy_string));
-                           write(comm[i].outbound[1],command, sizeof(req_t));
-                          }
-                           
-                      break;
+                           wait(NULL);
+                             }
+                          } 
+                          break;
         case TAB_IS_DEAD: 
                    TABS[i].free=1;
+                   wait(NULL);
                    break;
         case IS_FAV:
                if(fav_ok(req.uri))
@@ -413,19 +416,23 @@ int main(int argc, char **argv)
   strncpy(favorites_file,".favorites",favorites_file_name_size);
   
   //Open blacklist file and pass name to the function
+  printf("Failed here");
   init_tabs();
   init_blacklist(blacklist_file);
   init_favorites(favorites_file);
   // init blacklist (see util.h), and favorites (write this, see above)
   pid_t childpid;
+  printf("Did you fail here?");
   childpid=fork();
- if(childpid == -1)
+   if(childpid == -1)
  {
+  printf("Did you fail here?1");
   perror("fork() failed");
  exit(EXIT_FAILURE);
 }
 else if(childpid>0)
  {
+  printf("Did you fail here?2\n");
   if(wait(NULL)>0);
    else
      {
@@ -434,6 +441,7 @@ else if(childpid>0)
  }
 }
 else{
+  printf("Did you fail here?3\n");
   if (pipe(comm[0].inbound) == -1 || pipe(comm[0].outbound) == -1) {
     perror("pipe error\n");
     exit(1);
@@ -443,24 +451,6 @@ else{
   non_block_pipe (comm[0].inbound[0]);
   non_block_pipe (comm[0].outbound[0]);
   run_control();
-  
-  if(wait(NULL) <0)
-  {
-   perror("Wait failed");
-   exit(EXIT_FAILURE);
-   }
-  // Fork controller
-  // Child creates a pipe for itself comm[0]
-  // then calls run_control ()
-  // Parent waits ...
-}
-
-
-if(kill(0,SIGKILL) == -1)
-{
- perror("Kill failed");
- exit(EXIT_FAILURE);
-
 }
   return 0;
 }
