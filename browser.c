@@ -117,7 +117,7 @@ void update_favorites_file (char *uri) {
        perror("Error opening file");
      }
     else{
-        fprintf(favorite_file,"%s",uri);
+        fprintf(favorite_file,"%s \n",uri);
         printf("%s \n",uri);
   fclose(favorite_file);   
   // Update favorites array with the new favorite
@@ -125,7 +125,7 @@ void update_favorites_file (char *uri) {
   printf("%d \n",num_fav);
   strncpy(new_uri,uri,strlen(uri)+1);
   printf("%s",new_uri);  
- // memcpy(favorites[num_fav],new_uri,sizeof(new_uri));
+  strcpy(favorites[num_fav-1],new_uri);
  for(int i = 0; i < num_fav;i++){  
    printf("%s \n",favorites[i]);
   }
@@ -398,7 +398,8 @@ char* fav_max_alert_string;
         case PLEASE_DIE:
                            if(i==0)
                             {
-                            for(int j =1; j<MAX_TABS;j++)
+                            printf("Controller tried dying \n");
+                            for(int j =0; j<MAX_TABS;j++)
                              {
                              if(TABS[j].free==0){
                            command =malloc(sizeof(req_t));
@@ -408,7 +409,12 @@ char* fav_max_alert_string;
                            write(comm[j].inbound[1],command, sizeof(req_t));
                            wait(NULL);
                              }
-                          }} 
+                          }}
+                          else
+                            {
+                            printf("Tab tried dying \n");
+                            exit(EXIT_SUCCESS);
+                           } 
                           break;
         case TAB_IS_DEAD: 
                    TABS[i].free=1;
@@ -418,6 +424,8 @@ char* fav_max_alert_string;
                if(fav_ok(req.uri)==0)
                  {
                     update_favorites_file(req.uri);
+                    //How to update the menu?
+                    add_uri_to_favorite_menu(b_window,req.uri);
                  }
                 else
                 { 
