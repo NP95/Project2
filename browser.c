@@ -107,7 +107,8 @@ else{
 // Add uri to favorites file and update favorites array with the new favorite
 void update_favorites_file (char *uri) {
   // Add uri to favorites file
-
+   char* new_uri;
+   new_uri=malloc(strlen(uri))+1;
   printf("update_favorites_file \n");
     FILE* favorite_file;
     favorite_file = fopen(".favorites","a");
@@ -122,7 +123,9 @@ void update_favorites_file (char *uri) {
   // Update favorites array with the new favorite
   num_fav++;
   printf("%d \n",num_fav);
-  memcpy(favorites[num_fav],uri,strlen(uri));  
+  strncpy(new_uri,uri,strlen(uri)+1);
+  printf("%s",new_uri);  
+ // memcpy(favorites[num_fav],new_uri,sizeof(new_uri));
  for(int i = 0; i < num_fav;i++){  
    printf("%s \n",favorites[i]);
   }
@@ -395,21 +398,17 @@ char* fav_max_alert_string;
         case PLEASE_DIE:
                            if(i==0)
                             {
-                            int open_tabs = get_num_tabs();
-                            int current_tab;
-                            while(open_tabs)
+                            for(int j =1; j<MAX_TABS;j++)
                              {
-                           current_tab=get_free_tab();
-                           TABS[current_tab].free=1;
+                             if(TABS[j].free==0){
                            command =malloc(sizeof(req_t));
                            command->type=PLEASE_DIE;
-                           command->tab_index=current_tab;
+                           command->tab_index=j;
                            memcpy(command->uri,dummy_pointer,strlen(dummy_string));
-                           write(comm[current_tab].inbound[1],command, sizeof(req_t));
-                           open_tabs--;
+                           write(comm[j].inbound[1],command, sizeof(req_t));
                            wait(NULL);
                              }
-                          } 
+                          }} 
                           break;
         case TAB_IS_DEAD: 
                    TABS[i].free=1;
