@@ -266,10 +266,14 @@ void new_tab_created_cb (GtkButton *button, gpointer data) {
     return;
   }
   
+ 
+char* tab_max_alert_string;  
+  size_t tab_max_alert_string_size=strlen("TAB_MAX")+1;
+  tab_max_alert_string=malloc(tab_max_alert_string_size);
   // at tab limit?
   int active_tabs = get_num_tabs();
   if (active_tabs > MAX_TABS){
-    printf("%d %d \n", active_tabs, MAX_TABS);
+    alert(tab_max_alert_string);
     exit(1);
   }
 
