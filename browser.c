@@ -310,7 +310,7 @@ void new_tab_created_cb (GtkButton *button, gpointer data) {
     //What kind of bookkeeping?
      TABS[free_tab_id].free = 0;
     // wait(NULL);
-     waitpid(child,&status,WNOHANG);
+   //  waitpid(child,&status,WNOHANG);
     // exit(EXIT_SUCCESS);
   }
   
@@ -496,10 +496,10 @@ else if(childpid>0)
 }
 else{
   printf("Did you fail here?3\n");
-//  if (pipe(comm[0].inbound) == -1 || pipe(comm[0].outbound) == -1) {
-//    perror("pipe error\n");
-//    exit(1);
-//  }
+  if (pipe(comm[0].inbound) == -1 || pipe(comm[0].outbound) == -1) {
+    perror("pipe error\n");
+    exit(1);
+  }
 
   // Make the read ends non-blocking 
   non_block_pipe (comm[0].inbound[0]);
