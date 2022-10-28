@@ -24,13 +24,13 @@ typedef struct tab_list {
 } tab_list;
 
 //Added pointer variables for the different alerts
-char *blacklist_file;
-char *favorites_file;
-char *bad_format_alert_string;
-char *blacklist_alert_string;
-char *bad_tab_alert_string;
-char *tab_max_alert_string;
-char *fav_max_alert_string;
+char *blacklist_file=".blacklist";
+char *favorites_file=".favorites";
+char *bad_format_alert_string="BAD_FORMAT";
+char *blacklist_alert_string="BLACKLIST";
+char *bad_tab_alert_string="BAD_TAB";
+char *tab_max_alert_string="TAB_MAX";
+char *fav_max_alert_string="FAV_MAX";
 // Tab bookkeeping
 tab_list TABS[MAX_TABS];
 
@@ -121,7 +121,7 @@ void update_favorites_file(char *uri) {
     strcpy(favorites[num_fav - 1], new_uri);
   }
   printf("Update fav free failed \n"); 
-  free(new_uri);
+ // free(new_uri);
 }
 
 // Set up favorites array
@@ -387,7 +387,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "browser <no_args>\n");
     exit(0);
   }
-
+/*
   size_t blacklist_file_name_size = strlen(".blacklist") + 1;
   size_t favorites_file_name_size = strlen(".favorites") + 1;
   size_t fav_max_alert_string_size = strlen("FAV_MAX") + 1;
@@ -442,6 +442,7 @@ int main(int argc, char **argv) {
     exit(EXIT_FAILURE);
   }
   strncpy(tab_max_alert_string, "TAB_MAX", tab_max_alert_string_size);
+  */
   // Open blacklist file and pass name to the function
   init_tabs();
   init_blacklist(blacklist_file);
@@ -468,6 +469,7 @@ int main(int argc, char **argv) {
     non_block_pipe(comm[0].inbound[0]);
     non_block_pipe(comm[0].outbound[0]);
     run_control();
+   /* 
     printf("1 free failed");
     free(blacklist_file);
     printf("2 free failed");
@@ -483,6 +485,7 @@ int main(int argc, char **argv) {
     printf("7 free failed");
     free(tab_max_alert_string);
     printf("8 free failed");
+  */
     exit(EXIT_SUCCESS);
   }
 
