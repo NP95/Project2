@@ -107,6 +107,10 @@ else{
 // Add uri to favorites file and update favorites array with the new favorite
 void update_favorites_file (char *uri) {
   // Add uri to favorites file
+   if(fav_ok(uri))
+    {
+     return;
+    }
    char* new_uri;
    new_uri=malloc(strlen(uri))+1;
   printf("update_favorites_file \n");
@@ -416,11 +420,14 @@ char* fav_max_alert_string;
                             exit(EXIT_SUCCESS);
                            } 
                           break;
-        case TAB_IS_DEAD: 
+        case TAB_IS_DEAD:
+                    
+                   printf("Tab dead  \n");
                    TABS[i].free=1;
                    wait(NULL);
                    break;
         case IS_FAV:
+               printf("Favorite! \n");
                if(fav_ok(req.uri)==0)
                  {
                     update_favorites_file(req.uri);
