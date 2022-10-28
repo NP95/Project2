@@ -110,8 +110,6 @@ void update_favorites_file(char *uri) {
 
 // Set up favorites array
 void init_favorites(char *fname) {
-  // char favorites[MAX_FAV][MAX_URL];    // Maximum char length of a url
-  // allowed int num_fav = 0;                     // # favorites
   char buffer[MAX_URL];
   FILE *favorite_file;
 
@@ -147,7 +145,6 @@ int non_block_pipe(int fd) {
 // Checks if tab is bad and url violates constraints; if so, return.
 // Otherwise, send NEW_URI_ENTERED command to the tab on inbound pipe
 void handle_uri(char *uri, int tab_index) {
-  // hard_coded
   req_t *command;
   char *bad_format_alert_string;
   char *blacklist_alert_string;
@@ -155,7 +152,6 @@ void handle_uri(char *uri, int tab_index) {
   size_t blacklist_alert_string_size = strlen("BLACKLIST") + 1;
   bad_format_alert_string = malloc(bad_format_alert_string_size);
   blacklist_alert_string = malloc(blacklist_alert_string_size);
-  //  bad_tab_alert_string=malloc(bad_tab_alert_string_size);
   strncpy(bad_format_alert_string, "BAD_FORMAT", bad_format_alert_string_size);
   strncpy(blacklist_alert_string, "BLACKLIST", blacklist_alert_string_size);
 
@@ -258,9 +254,6 @@ void new_tab_created_cb(GtkButton *button, gpointer data) {
     // Controller parent just does some TABS bookkeeping
     // What kind of bookkeeping?
     TABS[free_tab_id].free = 0;
-    // wait(NULL);
-    //  waitpid(child,&status,WNOHANG);
-    // exit(EXIT_SUCCESS);
   }
 }
 
@@ -310,7 +303,6 @@ int run_control() {
   size_t fav_max_alert_string_size = strlen("FAV_MAX") + 1;
   fav_max_alert_string = malloc(fav_max_alert_string_size);
   strncpy(fav_max_alert_string, "FAV_MAX", fav_max_alert_string_size);
-  // alert(bad_tab_alert_string);
   while (1) {
     process_single_gtk_event();
 
