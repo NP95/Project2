@@ -49,13 +49,11 @@ int get_num_tabs() {
     if (TABS[i].free == 0)
       count++;
   }
-  printf("get_num_tabs :%d \n",count);
   return count;
 }
 
 // get next free tab index
 int get_free_tab() {
-  printf("get_free_tab \n");
   int i;
 
   for (i = 1; i < MAX_TABS; i++) {
@@ -67,7 +65,6 @@ int get_free_tab() {
 
 // init TABS data structure
 void init_tabs() {
-  printf("init_tabs \n");
   int i;
 
   for (i = 1; i < MAX_TABS; i++)
@@ -82,13 +79,6 @@ void init_tabs() {
 // return 0 if favorite is ok, -1 otherwise
 // both max limit, already a favorite (Hint: see util.h) return -1
 int fav_ok(char *uri) {
-  printf("fav_ok \n");
-  printf("%s \n", uri);
-  printf("Known value %d \n", on_favorites("https:\\google.com"));
-  printf("Known value %d \n", on_favorites("https:\\google.com"));
-  printf("Known value %d \n", on_favorites("google.com\n"));
-  printf("Known value %d \n", on_favorites("youtube.com\n"));
-  printf("Known value %d \n", on_favorites("bilibili.com\n"));
   if (on_favorites(uri) || (num_fav == MAX_FAV)) {
     return -1;
   } else {
@@ -104,32 +94,24 @@ void update_favorites_file(char *uri) {
   }
   char *new_uri;
   new_uri = malloc(strlen(uri)) + 1;
-  printf("update_favorites_file \n");
   FILE *favorite_file;
   favorite_file = fopen(".favorites", "a");
   if (favorite_file == NULL) {
     perror("Error opening file");
   } else {
     fprintf(favorite_file, "%s \n", uri);
-    printf("%s \n", uri);
     fclose(favorite_file);
     // Update favorites array with the new favorite
     num_fav++;
-    printf("%d \n", num_fav);
     strncpy(new_uri, uri, strlen(uri) + 1);
-    printf("%s", new_uri);
     strcpy(favorites[num_fav - 1], new_uri);
-    for (int i = 0; i < num_fav; i++) {
-      printf("%s \n", favorites[i]);
     }
   }
-}
 
 // Set up favorites array
 void init_favorites(char *fname) {
   // char favorites[MAX_FAV][MAX_URL];    // Maximum char length of a url
   // allowed int num_fav = 0;                     // # favorites
-  printf("init_favorites \n");
   char buffer[MAX_URL];
   FILE *favorite_file;
 
@@ -140,19 +122,15 @@ void init_favorites(char *fname) {
     while (fgets(buffer, sizeof(buffer), favorite_file) != NULL) {
       remove_multi_new_line(buffer);
       strncpy(favorites[num_fav], buffer, strlen(buffer));
-      printf("Updated contents: %s \n", buffer);
-      printf("Updated num: %d \n", num_fav);
       num_fav++;
     }
   }
   fclose(favorite_file);
-  printf("Final values of num_fav: %d \n", num_fav);
 }
 // Make fd non-blocking just as in class!
 // Return 0 if ok, -1 otherwise
 // Really a util but I want you to do it :-)
 int non_block_pipe(int fd) {
-  printf("non_block_pipe \n");
   int nFlags;
 
   if ((nFlags = fcntl(fd, F_GETFL, 0)) < 0)
@@ -169,9 +147,7 @@ int non_block_pipe(int fd) {
 // Checks if tab is bad and url violates constraints; if so, return.
 // Otherwise, send NEW_URI_ENTERED command to the tab on inbound pipe
 void handle_uri(char *uri, int tab_index) {
-  printf("3\n");
   // hard_coded
-  printf("tab_index: %d \n",tab_index);
   req_t *command;
   char *bad_format_alert_string;
   char *blacklist_alert_string;
@@ -207,7 +183,6 @@ void handle_uri(char *uri, int tab_index) {
     command->type = NEW_URI_ENTERED;
     command->tab_index = tab_index;
     memcpy(command->uri, uri, 512);
-    printf("%s \n", command->uri);
     write(comm[tab_index].inbound[1], command, sizeof(req_t));
   }
 }
@@ -216,18 +191,15 @@ void handle_uri(char *uri, int tab_index) {
 // If everything checks out, a NEW_URI_ENTERED command is sent (see Hint)
 // Short function
 void uri_entered_cb(GtkWidget *entry, gpointer data) {
-  printf("2\n");
   if (data == NULL) {
     return;
   }
 
   // Get the tab (hint: wrapper.h)
   int tab_id = query_tab_id_for_request(entry, data);
-  // printf("%d \n", tab_id);
 
   // Get the URL (hint: wrapper.h)
   char *url = get_entered_uri(entry);
-  // printf("%s \n", url);
   // Hint: now you are ready to handle_the_uri
   handle_uri(url, tab_id);
 }
@@ -237,7 +209,6 @@ void uri_entered_cb(GtkWidget *entry, gpointer data) {
 // Create new tab process with pipes
 // Long function
 void new_tab_created_cb(GtkButton *button, gpointer data) {
-  printf("1\n");
   if (data == NULL) {
     return;
   }
@@ -249,7 +220,6 @@ void new_tab_created_cb(GtkButton *button, gpointer data) {
   strncpy(tab_max_alert_string, "TAB_MAX", tab_max_alert_string_size);
   // at tab limit?
   int active_tabs = get_num_tabs();
-   printf("active_tabs: %d \n",active_tabs);
   if ((active_tabs> (MAX_TABS-1))) {
        alert(tab_max_alert_string);
        return;
@@ -283,8 +253,6 @@ void new_tab_created_cb(GtkButton *button, gpointer data) {
     sprintf(pipe_str, "%d %d %d %d", comm[free_tab_id].inbound[0],
             comm[free_tab_id].inbound[1], comm[free_tab_id].outbound[0],
             comm[free_tab_id].outbound[1]);
-    printf("%s \n", pipe_str);
-    printf("%s \n", tab_str);
     execl("./render", "render", tab_str, pipe_str, (char *)NULL);
   } else if (child > 0) {
     // Controller parent just does some TABS bookkeeping
@@ -302,7 +270,6 @@ void new_tab_created_cb(GtkButton *button, gpointer data) {
 // rendered as favorites strip this off for a nicer looking menu Short
 void menu_item_selected_cb(GtkWidget *menu_item, gpointer data) {
 
-  printf("menu_item_selected_cb \n");
   if (data == NULL) {
     return;
   }
@@ -325,7 +292,6 @@ void menu_item_selected_cb(GtkWidget *menu_item, gpointer data) {
 // BIG CHANGE: the controller now runs an loop so it can check all pipes
 // Long function
 int run_control() {
-  printf("Did you get in here \n");
   browser_window *b_window = NULL;
   int i, nRead;
   req_t req;
@@ -344,7 +310,6 @@ int run_control() {
   size_t fav_max_alert_string_size = strlen("FAV_MAX") + 1;
   fav_max_alert_string = malloc(fav_max_alert_string_size);
   strncpy(fav_max_alert_string, "FAV_MAX", fav_max_alert_string_size);
-  printf("Or here \n");
   // alert(bad_tab_alert_string);
   while (1) {
     process_single_gtk_event();
@@ -378,7 +343,6 @@ int run_control() {
 
       switch (req.type) {
       case PLEASE_DIE:
-        printf("Controller tried dying \n");
         if (i == 0) {
           for (int j = 1; j < MAX_TABS; j++) {
             if (TABS[j].free == 0) {
@@ -390,21 +354,18 @@ int run_control() {
               wait(NULL);
             }
           }
-        } else {
-          printf("Tab tried dying \n");
-        }
+        } 
+        
         exit(EXIT_SUCCESS);
         break;
       case TAB_IS_DEAD:
         if (i == 0) {
           exit(EXIT_SUCCESS);
         }
-        printf("Tab dead  \n");
         TABS[i].free = 1;
         wait(NULL);
         break;
       case IS_FAV:
-        printf("Favorite! \n");
         if (fav_ok(req.uri) == 0) {
           update_favorites_file(req.uri);
           // How to update the menu?
@@ -439,20 +400,16 @@ int main(int argc, char **argv) {
   strncpy(favorites_file, ".favorites", favorites_file_name_size);
 
   // Open blacklist file and pass name to the function
-  printf("Failed here \n");
   init_tabs();
   init_blacklist(blacklist_file);
   init_favorites(favorites_file);
   // init blacklist (see util.h), and favorites (write this, see above)
   pid_t childpid;
-  printf("Did you fail here? \n");
   childpid = fork();
   if (childpid == -1) {
-    printf("Did you fail here? 1\n");
     perror("fork() failed");
     exit(EXIT_FAILURE);
   } else if (childpid > 0) {
-    printf("Did you fail here? 2\n");
     if (wait(NULL) > 0)
       ;
     else {
@@ -460,7 +417,6 @@ int main(int argc, char **argv) {
       exit(EXIT_FAILURE);
     }
   } else {
-     printf("Did you fail here? 3\n");
     if (pipe(comm[0].inbound) == -1 || pipe(comm[0].outbound) == -1) {
       perror("pipe error\n");
       exit(1);
