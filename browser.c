@@ -400,10 +400,11 @@ char* fav_max_alert_string;
      switch(req.type)
       {
         case PLEASE_DIE:
+                            printf("Controller tried dying \n");
                            if(i==0)
                             {
                             printf("Controller tried dying \n");
-                            for(int j =0; j<MAX_TABS;j++)
+                            for(int j =1; j<MAX_TABS;j++)
                              {
                              if(TABS[j].free==0){
                            command =malloc(sizeof(req_t));
@@ -417,8 +418,8 @@ char* fav_max_alert_string;
                           else
                             {
                             printf("Tab tried dying \n");
-                            exit(EXIT_SUCCESS);
                            } 
+                           exit(EXIT_SUCCESS);
                           break;
         case TAB_IS_DEAD:
                    if(i==0)
@@ -442,7 +443,7 @@ char* fav_max_alert_string;
                   alert(fav_max_alert_string);
                  }
                 break;
-        default:  break;
+        default: break;
       }
     }
     usleep(1000);
@@ -504,6 +505,7 @@ else{
   non_block_pipe (comm[0].inbound[0]);
   non_block_pipe (comm[0].outbound[0]);
   run_control();
+  exit(EXIT_SUCCESS);
 }
   return 0;
 }
