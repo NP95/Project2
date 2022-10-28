@@ -421,7 +421,10 @@ char* fav_max_alert_string;
                            } 
                           break;
         case TAB_IS_DEAD:
-                    
+                   if(i==0)
+                    { 
+                      exit(EXIT_SUCCESS);
+                    } 
                    printf("Tab dead  \n");
                    TABS[i].free=1;
                    wait(NULL);
