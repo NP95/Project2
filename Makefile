@@ -16,7 +16,7 @@ submission: clean
 	@echo "Creating Tar Submission..."
 	@read -p "Please enter your group number: " grou_num; \
 	tar_name="group_"$$grou_num"_p1_submission.tar.gz";\
-	rm -f $$tar_name;tar -czvf $$tar_name browser.c Makefile render wrapper.o util.o wrapper.h util.h .blacklist .favorites;\
+	rm -f $$tar_name;tar -czvf $$tar_name browser.c Makefile render wrapper.o util.o wrapper.h util.h .blacklist README.md .favorites;\
 	echo "Submission Created: " $$tar_name
 
 clean:

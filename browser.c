@@ -26,11 +26,8 @@ typedef struct tab_list {
 //Added pointer variables for the different alerts
 char *blacklist_file=".blacklist";
 char *favorites_file=".favorites";
-char *bad_format_alert_string="BAD_FORMAT";
-char *blacklist_alert_string="BLACKLIST";
-char *bad_tab_alert_string="BAD_TAB";
-char *tab_max_alert_string="TAB_MAX";
-char *fav_max_alert_string="FAV_MAX";
+char *tab_max_alert_string="TAB_MAX"; //Working
+char *fav_max_alert_string="FAV_MAX"; //Working
 // Tab bookkeeping
 tab_list TABS[MAX_TABS];
 
@@ -164,6 +161,10 @@ int non_block_pipe(int fd) {
 void handle_uri(char *uri, int tab_index) {
   req_t *command;
   printf("%s \n",uri);
+   
+char *bad_format_alert_string="BAD_FORMAT";
+char *blacklist_alert_string="BLACKLIST";
+char *bad_tab_alert_string="BAD_TAB";
   if (on_blacklist(uri)) {
     alert(blacklist_alert_string);
   }
@@ -189,10 +190,10 @@ void handle_uri(char *uri, int tab_index) {
     memcpy(command->uri, uri, 512);
     if ((write(comm[tab_index].inbound[1], command, sizeof(req_t)) == -1)) {
       perror("Write to pipe failed");
+     free(command);
     }
   }
  printf("free command failed"); 
- free(command);
 
 }
 
