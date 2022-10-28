@@ -23,6 +23,14 @@ typedef struct tab_list {
   int pid; // may or may not be useful
 } tab_list;
 
+//Added pointer variables for the different alerts
+char *blacklist_file;
+char *favorites_file;
+char *bad_format_alert_string;
+char *blacklist_alert_string;
+char *bad_tab_alert_string;
+char *tab_max_alert_string;
+char *fav_max_alert_string;
 // Tab bookkeeping
 tab_list TABS[MAX_TABS];
 
@@ -94,9 +102,11 @@ void update_favorites_file(char *uri) {
   }
   char *new_uri;
   new_uri = malloc(strlen(uri)) + 1;
-  if(new_uri==NULL){
-  perror("New uri string malloc failed");
- exit(EXIT_FAILURE);}
+  
+  if (new_uri == NULL) {
+    perror("New uri string malloc failed");
+    exit(EXIT_FAILURE);
+  }
   FILE *favorite_file;
   favorite_file = fopen(".favorites", "a");
   if (favorite_file == NULL) {
@@ -109,9 +119,10 @@ void update_favorites_file(char *uri) {
     num_fav++;
     strncpy(new_uri, uri, strlen(uri) + 1);
     strcpy(favorites[num_fav - 1], new_uri);
-    }
-  free(new_uri);
   }
+  printf("Update fav free failed \n"); 
+  free(new_uri);
+}
 
 // Set up favorites array
 void init_favorites(char *fname) {
@@ -152,29 +163,7 @@ int non_block_pipe(int fd) {
 // Otherwise, send NEW_URI_ENTERED command to the tab on inbound pipe
 void handle_uri(char *uri, int tab_index) {
   req_t *command;
-  char *bad_format_alert_string;
-  char *blacklist_alert_string;
-  size_t bad_format_alert_string_size = strlen("BAD_FORMAT") + 1;
-  size_t blacklist_alert_string_size = strlen("BLACKLIST") + 1;
-  bad_format_alert_string = malloc(bad_format_alert_string_size);
-  if(bad_format_alert_string==NULL){
-  perror("New bad format string malloc failed");
- exit(EXIT_FAILURE);}
-  blacklist_alert_string = malloc(blacklist_alert_string_size);
-  if(blacklist_alert_string==NULL){
-  perror("New blacklist string malloc failed");
- exit(EXIT_FAILURE);}
-  strncpy(bad_format_alert_string, "BAD_FORMAT", bad_format_alert_string_size);
-  strncpy(blacklist_alert_string, "BLACKLIST", blacklist_alert_string_size);
-
-  char *bad_tab_alert_string;
-  size_t bad_tab_alert_string_size = strlen("BAD_TAB") + 1;
-  bad_tab_alert_string = malloc(bad_tab_alert_string_size);
-  if(bad_tab_alert_string==NULL){
-  perror("New bad format string malloc failed");
- exit(EXIT_FAILURE);}
-  strncpy(bad_tab_alert_string, "BAD_TAB", bad_tab_alert_string_size);
-
+  printf("%s \n",uri);
   if (on_blacklist(uri)) {
     alert(blacklist_alert_string);
   }
@@ -184,28 +173,27 @@ void handle_uri(char *uri, int tab_index) {
 
   }
 
-  else if (TABS[tab_index].free == 1||tab_index<1||tab_index>(MAX_TABS-1)){  
+  else if (TABS[tab_index].free == 1 || tab_index < 1 ||
+           tab_index > (MAX_TABS - 1)) {
     alert(bad_tab_alert_string);
-  }
-  else {
+  } else {
     // What triggers the bad tab_index? Is it that the tab is free?
     TABS[tab_index].free = 0;
     command = malloc(sizeof(req_t));
-    if(command==NULL)
-    {
-     perror("Malloc failed");
-     exit(EXIT_FAILURE);
+    if (command == NULL) {
+      perror("Malloc failed");
+      exit(EXIT_FAILURE);
     }
     command->type = NEW_URI_ENTERED;
     command->tab_index = tab_index;
     memcpy(command->uri, uri, 512);
-   if((write(comm[tab_index].inbound[1], command, sizeof(req_t))==-1)){
-     perror("Write to pipe failed");}
+    if ((write(comm[tab_index].inbound[1], command, sizeof(req_t)) == -1)) {
+      perror("Write to pipe failed");
+    }
   }
-  free(bad_format_alert_string);
-  free(blacklist_alert_string);
-  free(bad_tab_alert_string);
-  free(command);
+ printf("free command failed"); 
+ free(command);
+
 }
 
 // A URI has been typed in, and the associated tab index is determined
@@ -234,19 +222,11 @@ void new_tab_created_cb(GtkButton *button, gpointer data) {
     return;
   }
 
-  //Probably should have made this a function, too late now
-  char *tab_max_alert_string;
-  size_t tab_max_alert_string_size = strlen("TAB_MAX") + 1;
-  tab_max_alert_string = malloc(tab_max_alert_string_size);
-  if(tab_max_alert_string==NULL){
-  perror("New tab max string malloc failed");
- exit(EXIT_FAILURE);}
-  strncpy(tab_max_alert_string, "TAB_MAX", tab_max_alert_string_size);
   // at tab limit?
   int active_tabs = get_num_tabs();
-  if ((active_tabs> (MAX_TABS-1))) {
-       alert(tab_max_alert_string);
-       return;
+  if ((active_tabs > (MAX_TABS - 1))) {
+    alert(tab_max_alert_string);
+    return;
   }
 
   // Get a free tab
@@ -283,7 +263,6 @@ void new_tab_created_cb(GtkButton *button, gpointer data) {
     // What kind of bookkeeping?
     TABS[free_tab_id].free = 0;
   }
- free(tab_max_alert_string);
 }
 
 // This is called when a favorite is selected for rendering in a tab
@@ -328,13 +307,6 @@ int run_control() {
   create_browser_menu(&b_window, &favorites, num_fav);
   // Place holder
 
-  char *fav_max_alert_string;
-  size_t fav_max_alert_string_size = strlen("FAV_MAX") + 1;
-  fav_max_alert_string = malloc(fav_max_alert_string_size);
-  if(fav_max_alert_string==NULL){
-  perror("New url format string malloc failed");
- exit(EXIT_FAILURE);}
-  strncpy(fav_max_alert_string, "FAV_MAX", fav_max_alert_string_size);
   while (1) {
     process_single_gtk_event();
 
@@ -362,7 +334,8 @@ int run_control() {
       // Case 2: TAB_IS_DEAD
       // Set that number tab to be free
       // Case 3: IS_FAV
-      // Check if url is already on favorites list. If not add it to the favorites file and update the favorites menu.
+      // Check if url is already on favorites list. If not add it to the
+      // favorites file and update the favorites menu.
 
       switch (req.type) {
       case PLEASE_DIE:
@@ -377,8 +350,8 @@ int run_control() {
               wait(NULL);
             }
           }
-        } 
-        
+        }
+
         exit(EXIT_SUCCESS);
         break;
       case TAB_IS_DEAD:
@@ -403,8 +376,8 @@ int run_control() {
     }
     usleep(1000);
   }
+  printf("Free in run_control failed");
   free(command);
-  free(fav_max_alert_string);
   return 0;
 }
 
@@ -415,21 +388,60 @@ int main(int argc, char **argv) {
     exit(0);
   }
 
-  char *blacklist_file;
-  char *favorites_file;
   size_t blacklist_file_name_size = strlen(".blacklist") + 1;
   size_t favorites_file_name_size = strlen(".favorites") + 1;
+  size_t fav_max_alert_string_size = strlen("FAV_MAX") + 1;
+  fav_max_alert_string = malloc(fav_max_alert_string_size);
+  if (fav_max_alert_string == NULL) {
+    perror("New url format string malloc failed");
+    exit(EXIT_FAILURE);
+  }
+  strncpy(fav_max_alert_string, "FAV_MAX", fav_max_alert_string_size);
   blacklist_file = malloc(blacklist_file_name_size);
-  if(blacklist_file==NULL){
-  perror("New bad format string malloc failed");
- exit(EXIT_FAILURE);}
+  if (blacklist_file == NULL) {
+    perror("New bad format string malloc failed");
+    exit(EXIT_FAILURE);
+  }
   favorites_file = malloc(favorites_file_name_size);
-  if(favorites_file==NULL){
-  perror("New bad format string malloc failed");
- exit(EXIT_FAILURE);}
+  if (favorites_file == NULL) {
+    perror("New bad format string malloc failed");
+    exit(EXIT_FAILURE);
+  }
   strncpy(blacklist_file, ".blacklist", blacklist_file_name_size);
   strncpy(favorites_file, ".favorites", favorites_file_name_size);
 
+  size_t bad_format_alert_string_size = strlen("BAD_FORMAT") + 1;
+  size_t blacklist_alert_string_size = strlen("BLACKLIST") + 1;
+  bad_format_alert_string = malloc(bad_format_alert_string_size);
+  if (bad_format_alert_string == NULL) {
+    perror("New bad format string malloc failed");
+    exit(EXIT_FAILURE);
+  }
+  blacklist_alert_string = malloc(blacklist_alert_string_size);
+  if (blacklist_alert_string == NULL) {
+    perror("New blacklist string malloc failed");
+    exit(EXIT_FAILURE);
+  }
+  strncpy(bad_format_alert_string, "BAD_FORMAT", bad_format_alert_string_size);
+  strncpy(blacklist_alert_string, "BLACKLIST", blacklist_alert_string_size);
+
+  size_t bad_tab_alert_string_size = strlen("BAD_TAB") + 1;
+  bad_tab_alert_string = malloc(bad_tab_alert_string_size);
+  if (bad_tab_alert_string == NULL) {
+    perror("New bad format string malloc failed");
+    exit(EXIT_FAILURE);
+  }
+  strncpy(bad_tab_alert_string, "BAD_TAB", bad_tab_alert_string_size);
+
+  
+  // Probably should have made this a function, too late now
+  size_t tab_max_alert_string_size = strlen("TAB_MAX") + 1;
+  tab_max_alert_string = malloc(tab_max_alert_string_size);
+  if (tab_max_alert_string == NULL) {
+    perror("New tab max string malloc failed");
+    exit(EXIT_FAILURE);
+  }
+  strncpy(tab_max_alert_string, "TAB_MAX", tab_max_alert_string_size);
   // Open blacklist file and pass name to the function
   init_tabs();
   init_blacklist(blacklist_file);
@@ -441,11 +453,8 @@ int main(int argc, char **argv) {
     perror("fork() failed");
     exit(EXIT_FAILURE);
   } else if (childpid > 0) {
-    if (wait(NULL) > 0){
-     free(blacklist_file) ;
-     free(favorites_file) ;
-}
-    else {
+    if (wait(NULL) > 0) {
+    } else {
       perror("Wait failed");
       exit(EXIT_FAILURE);
     }
@@ -459,8 +468,23 @@ int main(int argc, char **argv) {
     non_block_pipe(comm[0].inbound[0]);
     non_block_pipe(comm[0].outbound[0]);
     run_control();
+    printf("1 free failed");
+    free(blacklist_file);
+    printf("2 free failed");
+    free(favorites_file);
+    printf("3 free failed");
+    free(bad_format_alert_string);
+    printf("4 free failed");
+    free(blacklist_alert_string);
+    printf("5 free failed");
+    free(bad_tab_alert_string);
+    printf("6 free failed");
+    free(fav_max_alert_string);
+    printf("7 free failed");
+    free(tab_max_alert_string);
+    printf("8 free failed");
     exit(EXIT_SUCCESS);
   }
-  
+
   return 0;
 }
